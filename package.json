@@ -39,9 +39,9 @@
   },
   "devDependencies": {
     "@ogre-tools/linkable": "^16.1.0",
-    "adr": "^1.4.3",
+    "adr": "^1.5.2",
     "cross-env": "^7.0.3",
-    "lerna": "^6.6.1",
-    "rimraf": "^4.4.1"
+    "lerna": "7.4.2",
+    "rimraf": "5.0.10"
   }
 }

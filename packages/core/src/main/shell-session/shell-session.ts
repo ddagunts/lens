@@ -113,6 +113,7 @@ export interface ShellSessionDependencies {
   readonly appName: string;
   readonly buildVersion: string;
   readonly proxyKubeconfigPath: string;
+  readonly proxyKubeconfigOriginalPath: string;
   readonly directoryContainingKubectl: string;
   readonly shellSessionEnvs: ShellSessionEnvs;
   readonly shellSessionProcesses: ShellSessionProcesses;
@@ -332,14 +333,20 @@ export abstract class ShellSession {
     })();
 
     const env = clearKubeconfigEnvVars(JSON.parse(JSON.stringify(rawEnv)));
-    const pathStr = [this.dependencies.directoryContainingKubectl, ...this.getPathEntries(), env.PATH].join(path.delimiter);
+    const pathStr = [this.dependencies.directoryContainingKubectl, env.Path].join(path.delimiter);
 
     delete env.DEBUG; // don't pass DEBUG into shells
 
     if (this.dependencies.isWindows) {
       env.PTYSHELL = shell || "powershell.exe";
-      env.PATH = pathStr;
+      if (env.PATH) {
+        delete env.PATH;
+      }
+      if (env.Path) {
+        delete env.Path;
+      }
       env.LENS_SESSION = "true";
+      env.PATH = pathStr;
       env.WSLENV = [
         env.WSLENV,
         "KUBECONFIG/up:LENS_SESSION/u",
@@ -360,7 +367,7 @@ export abstract class ShellSession {
     }
 
     env.PTYPID = process.pid.toString();
-    env.KUBECONFIG = this.dependencies.proxyKubeconfigPath;
+    env.KUBECONFIG = this.dependencies.proxyKubeconfigOriginalPath;
     env.TERM_PROGRAM = this.dependencies.appName;
     env.TERM_PROGRAM_VERSION = this.dependencies.buildVersion;
 

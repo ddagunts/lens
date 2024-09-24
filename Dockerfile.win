@@ -1,0 +1,48 @@
+FROM mcr.microsoft.com/dotnet/framework/runtime:4.8-windowsservercore-ltsc2019
+
+SHELL ["powershell", "-Command", "$ProgressPreference='silentlyContinue';"]
+
+# unable to use newer node, likely due to https://github.com/nodejs/node/issues/52554
+# need updated node-pty, likely
+COPY node-v18.20.1-win-x64.zip nodejs.zip
+RUN Expand-Archive nodejs.zip -DestinationPath C:\; 
+RUN Rename-Item "C:\\node-v18.20.1-win-x64" c:\\nodejsinst
+
+WORKDIR "C:\\app"
+RUN SETX PATH C:\\nodejsinst
+RUN npm config set registry https://registry.npmjs.org/
+RUN npm install -g npm@9.6.7
+
+RUN Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+ADD https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe C:/python3.exe
+RUN powershell -Command \
+  $ErrorActionPreference = 'Stop'; \
+  Start-Process c:\python3.exe -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1' -Wait ; \
+  Remove-Item c:\python3.exe -Force
+
+# Restore the default Windows shell for correct batch processing.
+SHELL ["cmd", "/S", "/C"]
+
+# Install chocolatey
+ADD https://chocolatey.org/install.ps1 install.ps1
+RUN @powershell -NoProfile -ExecutionPolicy unrestricted -Command "iex C:\\app\\install.ps1"
+
+# Install Visual C++ Build Tools, as per: https://chocolatey.org/packages/visualcpp-build-tools
+RUN choco install visualstudio2022-workload-vctools -y
+
+RUN setx /M PATH "%PATH%;C:\Program Files\Python311;"
+
+COPY . .
+
+RUN npm run all:install
+
+RUN setx /M NX_DAEMON "false"
+
+RUN npm rebuild --ignore-scripts=false --foreground-scripts --verbose sharp
+
+# If the following command fails, launch the image build in the previous layer
+# with more memory and CPU dedicated: docker run -it --memory=32000m --cpus=30 cfd527085aa0 cmd
+# and rerun the sharp rebuild command above,  and the "build command below"
+RUN npx nx run open-lens:build:app --win nsis msi portable
+

@@ -41,7 +41,7 @@ const openLocalShellSessionInjectable = getInjectable({
 
   instantiate: (di): OpenLocalShellSession => {
     const createKubectl = di.inject(createKubectlInjectable);
-    const dependencies: Omit<LocalShellSessionDependencies, "proxyKubeconfigPath" | "directoryContainingKubectl"> = {
+    const dependencies: Omit<LocalShellSessionDependencies, "proxyKubeconfigPath" | "directoryContainingKubectl" | "proxyKubeconfigOriginalPath"> = {
       directoryForBinaries: di.inject(directoryForBinariesInjectable),
       isMac: di.inject(isMacInjectable),
       isWindows: di.inject(isWindowsInjectable),
@@ -66,11 +66,13 @@ const openLocalShellSessionInjectable = getInjectable({
       const kubectl = createKubectl(args.cluster.version.get());
       const kubeconfigManager = di.inject(kubeconfigManagerInjectable, args.cluster);
       const proxyKubeconfigPath = await kubeconfigManager.ensurePath();
+      const proxyKubeconfigOriginalPath = await kubeconfigManager.ensureOriginalKubeconfigPath();
       const directoryContainingKubectl = await kubectl.binDir();
 
       const session = new LocalShellSession({
         ...dependencies,
         proxyKubeconfigPath,
+        proxyKubeconfigOriginalPath,
         directoryContainingKubectl,
       }, { kubectl, ...args });
 

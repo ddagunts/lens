@@ -38,7 +38,7 @@ const openNodeShellSessionInjectable = getInjectable({
   id: "open-node-shell-session",
   instantiate: (di): OpenNodeShellSession => {
     const createKubectl = di.inject(createKubectlInjectable);
-    const dependencies: Omit<NodeShellSessionDependencies, "proxyKubeconfigPath" | "loadProxyKubeconfig" | "directoryContainingKubectl"> = {
+    const dependencies: Omit<NodeShellSessionDependencies, "proxyKubeconfigPath" | "loadProxyKubeconfig" | "directoryContainingKubectl" | "proxyKubeconfigOriginalPath"> = {
       isMac: di.inject(isMacInjectable),
       isWindows: di.inject(isWindowsInjectable),
       logger: di.inject(loggerInjectionToken),
@@ -60,12 +60,14 @@ const openNodeShellSessionInjectable = getInjectable({
       const kubeconfigManager = di.inject(kubeconfigManagerInjectable, args.cluster);
       const loadProxyKubeconfig = di.inject(loadProxyKubeconfigInjectable, args.cluster);
       const proxyKubeconfigPath = await kubeconfigManager.ensurePath();
+      const proxyKubeconfigOriginalPath = await kubeconfigManager.ensureOriginalKubeconfigPath();
       const directoryContainingKubectl = await kubectl.binDir();
 
       const session = new NodeShellSession({
         ...dependencies,
         loadProxyKubeconfig,
         proxyKubeconfigPath,
+        proxyKubeconfigOriginalPath,
         directoryContainingKubectl,
       }, { kubectl, ...args });
 
