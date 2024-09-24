@@ -40,6 +40,7 @@ export class KubeconfigManager {
    * - if `null` then not yet created or was cleared
    */
   protected tempFilePath: string | null = null;
+  protected originalTempFilePath: string | null = null;
 
   constructor(
     private readonly dependencies: KubeconfigManagerDependencies,
@@ -59,10 +60,14 @@ export class KubeconfigManager {
   }
 
   /**
-   * Deletes the temporary kubeconfig file
+   * Deletes the temporary kubeconfig files
    */
   async clear(): Promise<void> {
     if (!this.tempFilePath) {
+      return;
+    }
+
+    if (!this.originalTempFilePath) {
       return;
     }
 
@@ -77,12 +82,25 @@ export class KubeconfigManager {
     } finally {
       this.tempFilePath = null;
     }
+
+    this.dependencies.logger.info(`[KUBECONFIG-MANAGER]: Deleting temporary original kubeconfig: ${this.originalTempFilePath}`);
+
+    try {
+      await this.dependencies.removePath(this.originalTempFilePath);
+    } catch (error) {
+      if (isErrnoException(error) && error.code !== "ENOENT") {
+        throw error;
+      }
+    } finally {
+      this.originalTempFilePath = null;
+    }
+
   }
 
   protected async ensureFile() {
     try {
       await this.dependencies.kubeAuthProxyServer.ensureRunning();
-
+      this.originalTempFilePath = await this.createOriginalKubeconfig();
       return this.tempFilePath = await this.createProxyKubeconfig();
     } catch (error) {
       throw new Error(`Failed to create temp config for auth-proxy: ${error}`);
@@ -131,4 +149,26 @@ export class KubeconfigManager {
 
     return tempFile;
   }
+
+  /**
+  * Creates a "temporary" original kubeconfig for the cluster.
+  * This one is used to open Pod and Node shells in clusters behind proxies
+  */
+  protected async createOriginalKubeconfig(): Promise<string> {
+    const { id } = this.cluster;
+    const contextName = this.cluster.contextName.get();
+    const tempFile = this.dependencies.joinPaths(
+      this.dependencies.directoryForTemp,
+      `kubeconfig-${id}-o`,
+    );
+    const kubeConfig = await this.dependencies.loadKubeconfig();
+    // write
+    const configYaml = dumpConfigYaml(kubeConfig);
+
+    await this.dependencies.writeFile(tempFile, configYaml, { mode: 0o600 });
+    this.dependencies.logger.debug(`[KUBECONFIG-MANAGER]: Created temp original kubeconfig "${contextName}" at "${tempFile}": \n${configYaml}`);
+
+    return tempFile;
+  }
+
 }

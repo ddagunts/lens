@@ -360,7 +360,7 @@ export abstract class ShellSession {
     }
 
     env.PTYPID = process.pid.toString();
-    env.KUBECONFIG = this.dependencies.proxyKubeconfigPath;
+    env.KUBECONFIG = this.dependencies.proxyKubeconfigPath + "-o";
     env.TERM_PROGRAM = this.dependencies.appName;
     env.TERM_PROGRAM_VERSION = this.dependencies.buildVersion;
 

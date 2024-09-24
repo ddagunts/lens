@@ -61,7 +61,7 @@
   },
   "config": {
     "k8sProxyVersion": "0.3.0",
-    "bundledKubectlVersion": "1.25.16",
+    "bundledKubectlVersion": "1.30.5",
     "bundledHelmVersion": "3.11.0",
     "sentryDsn": "",
     "contentSecurityPolicy": "script-src 'unsafe-eval' 'self'; frame-src https://*.lens.app:*/; img-src * data:",
