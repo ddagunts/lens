@@ -159,11 +159,18 @@ export class KubeconfigManager {
     const contextName = this.cluster.contextName.get();
     const tempFile = this.dependencies.joinPaths(
       this.dependencies.directoryForTemp,
-      `kubeconfig-${id}-o`,
+      `kubeconfig-${id}-${contextName}`,
     );
     const kubeConfig = await this.dependencies.loadKubeconfig();
-    // write
-    const configYaml = dumpConfigYaml(kubeConfig);
+
+    const originalConfig: PartialDeep<KubeConfig> = {
+      currentContext: this.cluster.contextName.get(),
+      clusters: kubeConfig.getClusters(),
+      users: kubeConfig.getUsers(),
+      contexts: kubeConfig.getContexts(),
+    };
+
+    const configYaml = dumpConfigYaml(originalConfig);
 
     await this.dependencies.writeFile(tempFile, configYaml, { mode: 0o600 });
     this.dependencies.logger.debug(`[KUBECONFIG-MANAGER]: Created temp original kubeconfig "${contextName}" at "${tempFile}": \n${configYaml}`);

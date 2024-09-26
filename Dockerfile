@@ -1,4 +1,4 @@
-from node:18
+from node:16
 
 RUN apt -y update && \
     apt -y install rpm
