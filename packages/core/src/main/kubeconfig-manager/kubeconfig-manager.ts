@@ -6,6 +6,7 @@
 import type { KubeConfig } from "@kubernetes/client-node";
 import { dumpConfigYaml } from "../../common/kube-helpers";
 import { isErrnoException } from "@openlens/utilities";
+import { Md5 } from 'ts-md5';
 import type { PartialDeep } from "type-fest";
 import type { Logger } from "@openlens/logger";
 import type { JoinPaths } from "../../common/path/join-paths.injectable";
@@ -157,9 +158,10 @@ export class KubeconfigManager {
   protected async createOriginalKubeconfig(): Promise<string> {
     const { id } = this.cluster;
     const contextName = this.cluster.contextName.get();
+    const contextNameHash = Md5.hashStr(contextName);
     const tempFile = this.dependencies.joinPaths(
       this.dependencies.directoryForTemp,
-      `kubeconfig-${id}-${contextName}`,
+      `kubeconfig-${id}-${contextNameHash}`,
     );
     const kubeConfig = await this.dependencies.loadKubeconfig();
 

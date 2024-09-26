@@ -9,6 +9,7 @@ import type WebSocket from "ws";
 import { clearKubeconfigEnvVars } from "../utils/clear-kube-env-vars";
 import path from "path";
 import os from "os";
+import { Md5 } from 'ts-md5';
 import type * as pty from "node-pty";
 import { getOrInsertWith } from "@openlens/utilities";
 import { type TerminalMessage, TerminalChannels } from "../../common/terminal/channels";
@@ -332,13 +333,18 @@ export abstract class ShellSession {
     })();
 
     const env = clearKubeconfigEnvVars(JSON.parse(JSON.stringify(rawEnv)));
-    const pathStr = [this.dependencies.directoryContainingKubectl, env.PATH].join(path.delimiter);
+    const pathStr = [this.dependencies.directoryContainingKubectl, env.Path].join(path.delimiter);
 
     delete env.DEBUG; // don't pass DEBUG into shells
 
     if (this.dependencies.isWindows) {
       env.PTYSHELL = shell || "powershell.exe";
-      delete env.PATH;
+      if (env.PATH) {
+        delete env.PATH;
+      }
+      if (env.Path) {
+        delete env.Path;
+      }
       env.LENS_SESSION = "true";
       env.PATH = pathStr;
       env.WSLENV = [
@@ -361,7 +367,8 @@ export abstract class ShellSession {
     }
 
     env.PTYPID = process.pid.toString();
-    env.KUBECONFIG = this.dependencies.proxyKubeconfigPath + "-" + this.cluster.contextName.get();
+    const contextNameHash = Md5.hashStr(this.cluster.contextName.get());
+    env.KUBECONFIG = this.dependencies.proxyKubeconfigPath + "-" + contextNameHash;
     env.TERM_PROGRAM = this.dependencies.appName;
     env.TERM_PROGRAM_VERSION = this.dependencies.buildVersion;
 
