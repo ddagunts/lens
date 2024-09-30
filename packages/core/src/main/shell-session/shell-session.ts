@@ -333,12 +333,13 @@ export abstract class ShellSession {
     })();
 
     const env = clearKubeconfigEnvVars(JSON.parse(JSON.stringify(rawEnv)));
-    const pathStr = [this.dependencies.directoryContainingKubectl, env.Path].join(path.delimiter);
+    const linuxPathStr = [this.dependencies.directoryContainingKubectl, env.PATH].join(path.delimiter);
 
     delete env.DEBUG; // don't pass DEBUG into shells
 
     if (this.dependencies.isWindows) {
       env.PTYSHELL = shell || "powershell.exe";
+      const winPathStr = [this.dependencies.directoryContainingKubectl, env.Path].join(path.delimiter);
       if (env.PATH) {
         delete env.PATH;
       }
@@ -346,7 +347,7 @@ export abstract class ShellSession {
         delete env.Path;
       }
       env.LENS_SESSION = "true";
-      env.PATH = pathStr;
+      env.PATH = winPathStr;
       env.WSLENV = [
         env.WSLENV,
         "KUBECONFIG/up:LENS_SESSION/u",
@@ -355,7 +356,7 @@ export abstract class ShellSession {
         .join(":");
     } else if (shell !== undefined) {
       env.PTYSHELL = shell;
-      env.PATH = pathStr;
+      env.PATH = linuxPathStr;
     } else {
       env.PTYSHELL = ""; // blank runs the system default shell
     }
